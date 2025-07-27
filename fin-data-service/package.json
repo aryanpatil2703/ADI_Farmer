@@ -1,0 +1,24 @@
+{
+    "name": "fin-data-service",
+    "version": "1.0.0",
+    "description": "Financial Data Aggregator API",
+    "main": "target/fin-data-service-0.0.1-SNAPSHOT.jar",
+    "scripts": {
+        "build": "mvn clean package -DskipTests",
+        "start": "java -jar target/fin-data-service-0.0.1-SNAPSHOT.jar",
+        "vercel-build": "mvn clean package -DskipTests"
+    },
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "dependencies": {},
+    "devDependencies": {},
+    "keywords": [
+        "spring-boot",
+        "mongodb",
+        "financial-data",
+        "api"
+    ],
+    "author": "ADI_Farmer",
+    "license": "MIT"
+}

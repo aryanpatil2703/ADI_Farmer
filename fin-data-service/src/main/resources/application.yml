@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: FinDataServices
+
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/FinData
+      database: FinData
+
+Server:
+  port: 8082
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+  info:
+    title: My Spring Boot API
+    description: API documentation for my Spring Boot application

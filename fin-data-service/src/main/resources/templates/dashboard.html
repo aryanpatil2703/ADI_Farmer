@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Data Aggregator Dashboard</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #ecf0f1;
+            --dark-bg: #34495e;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: bold;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, var(--success-color), var(--secondary-color));
+            color: white;
+        }
+
+        .summary-card.danger {
+            background: linear-gradient(135deg, var(--danger-color), var(--warning-color));
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        .config-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .btn-custom {
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .chart-controls {
+            margin-bottom: 15px;
+        }
+
+        .refresh-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success-color);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            display: none;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                Financial Data Aggregator
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-clock me-1"></i>
+                    <span id="current-time"></span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Refresh Indicator -->
+    <div class="refresh-indicator" id="refreshIndicator">
+        <i class="fas fa-sync-alt me-2"></i>
+        Data Updated
+    </div>
+
+    <div class="container-fluid mt-4">
+        <!-- Summary Cards -->
+        <div class="row mb-4" id="summaryCards">
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exchange-alt fa-2x mb-2"></i>
+                        <h5 class="card-title">Total Transactions</h5>
+                        <h3 id="totalTransactions">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                        <h5 class="card-title">Total Amount</h5>
+                        <h3 id="totalAmount">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card danger">
+                    <div class="card-body text-center">
+                        <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                        <h5 class="card-title">Fraud Cases</h5>
+                        <h3 id="fraudCount">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card summary-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                        <h5 class="card-title">Unique Devices</h5>
+                        <h3 id="uniqueDevices">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Panel -->
+        <div class="config-panel">
+            <h5><i class="fas fa-cog me-2"></i>Dashboard Configuration</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="form-label">Refresh Interval (seconds)</label>
+                    <select class="form-select" id="refreshInterval">
+                        <option value="10">10 seconds</option>
+                        <option value="30" selected>30 seconds</option>
+                        <option value="60">1 minute</option>
+                        <option value="300">5 minutes</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Time Range</label>
+                    <select class="form-select" id="timeRange">
+                        <option value="1h">Last Hour</option>
+                        <option value="24h">Last 24 Hours</option>
+                        <option value="7d">Last 7 Days</option>
+                        <option value="30d">Last 30 Days</option>
+                        <option value="all" selected>All Time</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Auto Refresh</label>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="autoRefresh" checked>
+                        <label class="form-check-label" for="autoRefresh">Enable</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary btn-custom w-100" onclick="refreshAllData()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh Now
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="row" id="chartsContainer">
+            <!-- Charts will be dynamically loaded here -->
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let charts = {};
+        let refreshInterval;
+        let currentConfigs = [];
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            loadDashboardData();
+            startAutoRefresh();
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleTimeString();
+        }
+
+        function showRefreshIndicator() {
+            const indicator = document.getElementById('refreshIndicator');
+            indicator.style.display = 'block';
+            setTimeout(() => {
+                indicator.style.display = 'none';
+            }, 2000);
+        }
+
+        async function loadDashboardData() {
+            try {
+                // Load summary data
+                const summaryResponse = await fetch('/api/analytics/summary');
+                const summary = await summaryResponse.json();
+                updateSummaryCards(summary);
+
+                // Load dashboard configurations
+                const configsResponse = await fetch('/api/dashboard/configs/active');
+                currentConfigs = await configsResponse.json();
+                
+                // Load and display charts
+                await loadCharts();
+                
+                showRefreshIndicator();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+            }
+        }
+
+        function updateSummaryCards(summary) {
+            document.getElementById('totalTransactions').textContent = summary.totalTransactions?.toLocaleString() || '-';
+            document.getElementById('totalAmount').textContent = '$' + (summary.totalAmount?.toLocaleString() || '-');
+            document.getElementById('fraudCount').textContent = summary.fraudCount?.toLocaleString() || '-';
+            document.getElementById('uniqueDevices').textContent = summary.uniqueDevices?.toLocaleString() || '-';
+        }
+
+        async function loadCharts() {
+            const container = document.getElementById('chartsContainer');
+            container.innerHTML = '';
+
+            for (const config of currentConfigs) {
+                if (config.enabled) {
+                    const chartDiv = createChartContainer(config);
+                    container.appendChild(chartDiv);
+                    
+                    // Load chart data
+                    await loadChartData(config);
+                }
+            }
+        }
+
+        function createChartContainer(config) {
+            const colDiv = document.createElement('div');
+            colDiv.className = 'col-md-6 col-lg-4 mb-4';
+            
+            colDiv.innerHTML = `
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>${config.title}</span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-light" onclick="refreshChart('${config.id}')">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-light" onclick="toggleChart('${config.id}')">
+                                <i class="fas fa-eye-slash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="chart-${config.id}"></canvas>
+                        </div>
+                        <div class="loading" id="loading-${config.id}">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return colDiv;
+        }
+
+        async function loadChartData(config) {
+            try {
+                const response = await fetch(`/api/dashboard/analytics/${config.dataSource}`);
+                const data = await response.json();
+                
+                createChart(config, data);
+            } catch (error) {
+                console.error(`Error loading chart data for ${config.id}:`, error);
+            }
+        }
+
+        function createChart(config, data) {
+            const canvas = document.getElementById(`chart-${config.id}`);
+            const loading = document.getElementById(`loading-${config.id}`);
+            
+            if (loading) loading.style.display = 'none';
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (charts[config.id]) {
+                charts[config.id].destroy();
+            }
+            
+            const chartConfig = {
+                type: config.chartType,
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: data.title,
+                        data: data.data,
+                        backgroundColor: getChartColors(config.chartType, data.labels.length),
+                        borderColor: config.chartType === 'line' ? '#3498db' : undefined,
+                        borderWidth: 2,
+                        fill: config.chartType === 'line'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: data.title
+                        }
+                    },
+                    scales: config.chartType !== 'pie' && config.chartType !== 'doughnut' ? {
+                        y: {
+                            beginAtZero: true
+                        }
+                    } : undefined
+                }
+            };
+            
+            charts[config.id] = new Chart(ctx, chartConfig);
+        }
+
+        function getChartColors(chartType, count) {
+            const colors = [
+                '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6',
+                '#1abc9c', '#34495e', '#e67e22', '#95a5a6', '#16a085'
+            ];
+            
+            if (chartType === 'line') {
+                return '#3498db';
+            }
+            
+            return colors.slice(0, count);
+        }
+
+        function startAutoRefresh() {
+            const interval = document.getElementById('refreshInterval').value * 1000;
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+            
+            refreshInterval = setInterval(() => {
+                if (document.getElementById('autoRefresh').checked) {
+                    loadDashboardData();
+                }
+            }, interval);
+        }
+
+        function refreshAllData() {
+            loadDashboardData();
+        }
+
+        async function refreshChart(chartId) {
+            const config = currentConfigs.find(c => c.id === chartId);
+            if (config) {
+                await loadChartData(config);
+            }
+        }
+
+        async function toggleChart(chartId) {
+            try {
+                await fetch(`/api/dashboard/configs/${chartId}/toggle`, { method: 'POST' });
+                loadDashboardData();
+            } catch (error) {
+                console.error('Error toggling chart:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('refreshInterval').addEventListener('change', startAutoRefresh);
+        document.getElementById('autoRefresh').addEventListener('change', function() {
+            if (!this.checked && refreshInterval) {
+                clearInterval(refreshInterval);
+            } else {
+                startAutoRefresh();
+            }
+        });
+
+        // Initialize default configurations if none exist
+        async function initializeDefaultConfigs() {
+            try {
+                const response = await fetch('/api/dashboard/configs');
+                const configs = await response.json();
+                
+                if (configs.length === 0) {
+                    // Create default configurations
+                    const defaultConfigs = [
+                        {
+                            chartType: 'bar',
+                            title: 'Transaction Amount by Type',
+                            dataSource: 'amount',
+                            timeRange: 'all',
+                            refreshInterval: 30,
+                            enabled: true,
+                            position: 1
+                        },
+                        {
+                            chartType: 'pie',
+                            title: 'Transaction Status Distribution',
+                            dataSource: 'status',
+                            timeRange: 'all',
+                            refreshInterval: 30,
+                            enabled: true,
+                            position: 2
+                        },
+                        {
+                            chartType: 'doughnut',
+                            title: 'Fraud Analysis',
+                            dataSource: 'fraud',
+                            timeRange: 'all',
+                            refreshInterval: 30,
+                            enabled: true,
+                            position: 3
+                        },
+                        {
+                            chartType: 'line',
+                            title: 'Transaction Trend',
+                            dataSource: 'trend',
+                            timeRange: 'all',
+                            refreshInterval: 30,
+                            enabled: true,
+                            position: 4
+                        }
+                    ];
+                    
+                    for (const config of defaultConfigs) {
+                        await fetch('/api/dashboard/configs', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(config)
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing default configs:', error);
+            }
+        }
+
+        // Initialize on page load
+        initializeDefaultConfigs();
+    </script>
+</body>
+</html> 
