@@ -123,7 +123,7 @@ public class TransactionService {
         File jsonFile = new File(filePath);
 
         if (!jsonFile.exists() || !jsonFile.isFile()) {
-            throw new IOException("File not found: " + filePath);
+            throw new IOException("File not cfound: " + filePath);
         }
 
         try {
